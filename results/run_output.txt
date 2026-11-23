@@ -1,0 +1,74 @@
+
+== DATA ==
+  delivered orders 96,478 | single-seller 95,203 (98.7%) | dropped 827 | final rows 94,376
+  train      66,063 rows  2016-09-15 to 2018-04-13
+  validation 14,156 rows  2018-04-13 to 2018-06-21
+  test       14,157 rows  2018-06-21 to 2018-08-29
+
+== MODEL A: RIDGE ==
+  alpha 0.01   val RMSE R$16.06
+  alpha 0.1    val RMSE R$16.05
+  alpha 1      val RMSE R$16.06
+  alpha 10     val RMSE R$16.06
+  alpha 100    val RMSE R$16.08
+  best alpha 0.1
+  validation             MAE R$7.77 | RMSE R$16.05 | R2 0.476 | bias R$-2.28 | within5 53.7% | under5 25.4% | over5 20.9%
+  TEST                   MAE R$7.56 | RMSE R$21.20 | R2 0.355 | bias R$-4.17 | within5 58.0% | under5 30.4% | over5 11.6%
+
+== MODEL B: GRADIENT BOOSTING (18-setting grid) ==
+  lr 0.03  depth None  iters 200  val RMSE R$11.98
+  lr 0.03  depth None  iters 400  val RMSE R$12.07
+  lr 0.03  depth 8     iters 200  val RMSE R$12.00
+  lr 0.03  depth 8     iters 400  val RMSE R$12.07
+  lr 0.03  depth 4     iters 200  val RMSE R$12.37
+  lr 0.03  depth 4     iters 400  val RMSE R$12.28
+  lr 0.06  depth None  iters 200  val RMSE R$12.07
+  lr 0.06  depth None  iters 400  val RMSE R$12.20
+  lr 0.06  depth 8     iters 200  val RMSE R$12.12
+  lr 0.06  depth 8     iters 400  val RMSE R$12.19
+  lr 0.06  depth 4     iters 200  val RMSE R$12.25
+  lr 0.06  depth 4     iters 400  val RMSE R$12.32
+  lr 0.1   depth None  iters 200  val RMSE R$12.14
+  lr 0.1   depth None  iters 400  val RMSE R$12.23
+  lr 0.1   depth 8     iters 200  val RMSE R$12.13
+  lr 0.1   depth 8     iters 400  val RMSE R$12.21
+  lr 0.1   depth 4     iters 200  val RMSE R$12.43
+  lr 0.1   depth 4     iters 400  val RMSE R$12.41
+  best: learning rate 0.03, max depth None, iterations 200 (min leaf 30, L2 1.0, max leaf nodes 31)
+  validation             MAE R$5.49 | RMSE R$11.98 | R2 0.708 | bias R$-2.30 | within5 73.7% | under5 17.7% | over5 8.5%
+  TEST                   MAE R$5.67 | RMSE R$17.12 | R2 0.579 | bias R$-4.15 | within5 75.1% | under5 22.1% | over5 2.8%
+
+== COMPARISON (TEST) ==
+  Model A (Ridge)        MAE R$7.56 | RMSE R$21.20 | R2 0.355 | bias R$-4.17 | within5 58.0% | under5 30.4% | over5 11.6%
+  Model B (GBM)          MAE R$5.67 | RMSE R$17.12 | R2 0.579 | bias R$-4.15 | within5 75.1% | under5 22.1% | over5 2.8%
+  Mean-only baseline     MAE R$11.77 | RMSE R$26.48 | R2 -0.007 | bias R$-2.21 | within5 36.9% | under5 22.5% | over5 40.6%
+  Model B MAE is 25% lower than Model A (R$1.89 per order)
+  worst 1% of test orders = 73% of Model B squared error; 63% of them weigh over 10 kg
+
+== RECOMMENDATION CHECKS (Model B, test) ==
+  orders over 10 kg: 4.0% of test, MAE R$29.46
+  multi-item orders: 7.6% of test, MAE R$11.53
+  everything else:   89.2% of test, MAE R$4.44
+  validation shortfall (cushion) R$2.30
+  test + cushion         MAE R$5.58 | RMSE R$16.71 | R2 0.599 | bias R$-1.85 | within5 78.2% | under5 15.0% | over5 6.8%
+  Model B signed bias by month (validation, then test):
+    2018-04  bias R$-1.85  (n=3,684)
+    2018-05  bias R$-1.53  (n=6,421)
+    2018-06  bias R$-3.93  (n=4,051)
+    2018-06  bias R$-4.58  (n=1,913)
+    2018-07  bias R$-4.65  (n=6,039)
+    2018-08  bias R$-3.54  (n=6,205)
+  PSI, train vs test:
+    weight_g     0.032
+    volume_cm3   0.030
+    price_sum    0.012
+    distance_km  0.025
+    n_items      0.000
+    freight      0.305
+  benchmark basket (1 item, 0.5-2 kg, 300-800 km) median freight: Feb 2018 R$16.19 -> Jun-Aug 2018 R$19.48 (+20%)
+
+== LIMITS: RANDOM SPLIT INSTEAD OF TIME SPLIT ==
+  Model A random split   MAE R$7.62 | RMSE R$16.18 | R2 0.470 | bias R$-0.08 | within5 48.3% | under5 20.4% | over5 31.3%
+  Model B random split   MAE R$4.29 | RMSE R$10.29 | R2 0.786 | bias R$+0.15 | within5 80.1% | under5 9.1% | over5 10.8%
+
+Saved results/metrics.json
